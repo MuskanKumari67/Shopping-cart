@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Women's Shopping Cart</title>
+<style>
+body{font-family:Arial;background:#f5f5f5;margin:20px}
+.products{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.card,.cart,.checkout{background:white;padding:15px;border-radius:10px;margin-top:15px}
+img{width:100%;height:160px;object-fit:contain}
+button{padding:8px 12px;background:#222;color:white;border:0;border-radius:5px}
+input{padding:9px;margin:5px;width:90%}
+.hide{display:none}
+</style>
+</head>
+
+<body>
+
+<h1>🛍️ Women's Store</h1>
+<div id="products" class="products"></div>
+
+<div class="cart">
+<h2>🛒 Cart</h2>
+<div id="cart">Cart is empty</div>
+
+<input id="promo" placeholder="Promo Code">
+<button onclick="promo()">Apply</button>
+
+<p>Discount: $<span id="dis">0</span></p>
+<p>Subtotal: $<span id="sub">0</span></p>
+<p>Tax 10%: $<span id="tax">0</span></p>
+<h2>Total: $<span id="total">0</span></h2>
+
+<button onclick="checkout()">Checkout</button>
+</div>
+
+<div id="check" class="checkout hide">
+<h2>Checkout - Step <span id="num">1</span></h2>
+
+<div id="step1">
+<input id="name" placeholder="Full Name">
+<input id="email" placeholder="Email">
+<button onclick="next(2)">Next</button>
+</div>
+
+<div id="step2" class="hide">
+<input id="address" placeholder="Address">
+<button onclick="next(1)">Back</button>
+<button onclick="next(3)">Next</button>
+</div>
+
+<div id="step3" class="hide">
+<input id="card" placeholder="16 digit card number">
+<button onclick="next(2)">Back</button>
+<button onclick="pay()">Place Order</button>
+</div>
+
+<p id="msg"></p>
+</div>
+
+<script>
+let products=[],cart=[],discount=0;
+
+fetch("https://fakestoreapi.com/products/category/women's%20clothing")
+.then(r=>r.json())
+.then(data=>{
+products=data;
+document.getElementById("products").innerHTML=data.map(p=>`
+<div class="card">
+<img src="${p.image}">
+<h3>${p.title.slice(0,25)}</h3>
+<p>$${p.price}</p>
+<button onclick="add(${p.id})">Add to Cart</button>
+</div>`).join("");
+});
+
+function add(id){
+let x=cart.find(i=>i.id==id);
+x?x.qty++:cart.push({...products.find(p=>p.id==id),qty:1});
+update();
+}
+
+function remove(id){
+cart=cart.filter(i=>i.id!=id);
+update();
+}
+
+function change(id,q){
+cart.find(i=>i.id==id).qty=Math.max(1,+q);
+update();
+}
+
+function update(){
+document.getElementById("cart").innerHTML=cart.length?
+cart.map(i=>`
+<p>${i.title.slice(0,20)}
+<input type="number" value="${i.qty}" min="1"
+onchange="change(${i.id},this.value)" style="width:45px">
+$${(i.price*i.qty).toFixed(2)}
+<button onclick="remove(${i.id})">X</button></p>`).join("")
+:"Cart is empty";
+
+let sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+let d=sub*discount,t=(sub-d)*.10;
+
+document.getElementById("dis").innerText=d.toFixed(2);
+document.getElementById("sub").innerText=sub.toFixed(2);
+document.getElementById("tax").innerText=t.toFixed(2);
+document.getElementById("total").innerText=(sub-d+t).toFixed(2);
+}
+
+function promo(){
+discount=document.getElementById("promo").value=="SAVE20"?.20:0;
+update();
+}
+
+function checkout(){
+if(!cart.length)return alert("Cart is empty!");
+document.getElementById("check").classList.remove("hide");
+}
+
+function next(n){
+if(n==2&&(!name.value||!/^[^ ]+@[^ ]+\.[a-z]{2,}$/i.test(email.value)))
+return msg.innerText="Enter valid name and email";
+
+if(n==3&&!address.value)
+return msg.innerText="Enter address";
+
+[1,2,3].forEach(x=>document.getElementById("step"+x).classList.add("hide"));
+document.getElementById("step"+n).classList.remove("hide");
+num.innerText=n;
+msg.innerText="";
+}
+
+function pay(){
+if(!/^\d{16}$/.test(card.value))
+return msg.innerText="Enter valid 16-digit dummy card";
+
+msg.innerText="✅ Order placed successfully!";
+}
+</script>
+
+</body>
+</html>
